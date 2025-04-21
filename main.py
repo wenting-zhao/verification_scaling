@@ -24,17 +24,19 @@ def main():
     dataset = load_dataset(args.dataset_name, split=args.dataset_split, trust_remote_code=True)
     if "livecodebench" in args.dataset_name:
         problems = [example['question_content'] for example in dataset]
-        problems = [problem.split("\nSample Input ")[0].split("\nExample ")[0].strip() for problem in problems]
+        problems = [problem.split("Sample Input 1")[0].split("Example 1")[0].strip() for problem in problems]
+    elif "mbpp" in args.dataset_name:
+        problems = [example['prompt'] for example in dataset]
     else:
         raise NotImplementedError("Dataset not supported")
-    # generated_code = generate_code(
-    #     problems,
-    #     args.code_prompt_format,
-    #     args.generation_model,
-    #     temperature=args.temperature,
-    #     num_generations=args.num_generations
-    # )
-    # dataset = dataset.add_column(name="generated_code", column=generated_code)
+    generated_code = generate_code(
+        problems,
+        args.code_prompt_format,
+        args.generation_model,
+        temperature=args.temperature,
+        num_generations=args.num_generations
+    )
+    dataset = dataset.add_column(name="generated_code", column=generated_code)
     test_inputs, test_outputs = generate_tests(problems, args.test_prompt_format, args.verification_model)
     dataset = dataset.add_column(name="generated_tests", column=[{"input": input, "output": output} for input, output in zip(test_inputs, test_outputs)])
     dataset.push_to_hub(args.output_dataset_name, split=args.dataset_split)
