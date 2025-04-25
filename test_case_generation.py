@@ -210,11 +210,24 @@ Test Cases:
 def extract_test_cases(content):
     if "</think>" in content:
         content = content.split("</think>")[-1]
-    print(content)
     input_pattern = r"<input>(.*?)</input>"
     output_pattern = r"<output>(.*?)</output>"
     input_matches = re.findall(input_pattern, content, re.DOTALL)
     output_matches = re.findall(output_pattern, content, re.DOTALL)
+    input_len = len(input_matches)
+    output_len = len(output_matches)
+    if input_len == 0 or output_len == 0:
+        print(f"No input or output matches found in the content\n{content}")
+        input_matches = []
+        output_matches = []
+    elif output_len > input_len:
+        print(f"Output length {output_len} is greater than input length {input_len}\n{content}")
+        input_matches = []
+        output_matches = []
+    else:
+        min_len = min(input_len, output_len)
+        input_matches = input_matches[:min_len]
+        output_matches = output_matches[:min_len]
     return input_matches, output_matches
 
 
@@ -241,10 +254,13 @@ def generate_tests(problems, prompt_format, model):
     
     test_inputs = []
     test_outputs = []
+    malformed_count = 0
     for output in chat_outputs:
         response = output.outputs[0].text
         inputs, outputs = extract_test_cases(response)
+        if inputs == []:
+            malformed_count += 1
         test_inputs.append(inputs)
         test_outputs.append(outputs)
-    
+    print(f"Ratio of malformed test cases: {malformed_count / len(chat_outputs)}")
     return test_inputs, test_outputs

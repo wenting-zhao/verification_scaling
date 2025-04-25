@@ -26,7 +26,7 @@ def main():
         problems = [example['question_content'] for example in dataset]
         problems = [problem.split("Sample Input 1")[0].split("Example 1")[0].strip() for problem in problems]
     elif "mbpp" in args.dataset_name:
-        problems = [example['prompt'] for example in dataset]
+        problems = [example['text'] for example in dataset]
     else:
         raise NotImplementedError("Dataset not supported")
     generated_code = generate_code(
