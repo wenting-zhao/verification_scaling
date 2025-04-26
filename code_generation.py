@@ -1,5 +1,6 @@
 from vllm import LLM, SamplingParams
-
+import torch
+from utils import cleanup
 code_generation_std_format = '''
 Solve the following coding problem using the programming language python:
 
@@ -30,7 +31,7 @@ def generate_code(problems, prompt_format, model, temperature, num_generations):
     Returns:
         List of lists containing generated code solutions for each example
     """
-    llm = LLM(model=model)
+    llm = LLM(model=model, tensor_parallel_size=torch.cuda.device_count())
     sampling_params = SamplingParams(
         temperature=temperature,
         max_tokens=512,
@@ -46,5 +47,5 @@ def generate_code(problems, prompt_format, model, temperature, num_generations):
     messages = [[{"role": "user", "content": prompt}] for prompt in code_prompts]
     outputs = llm.chat(messages, sampling_params)
     generated_code = [[one.text for one in output.outputs] for output in outputs]
-    
+    cleanup()
     return generated_code

@@ -1,11 +1,8 @@
 # SPDX-License-Identifier: MIT
 import re
 from vllm import LLM, SamplingParams
-import json
-import argparse
-import os
-from concurrent.futures import ThreadPoolExecutor
-
+import torch
+from utils import cleanup
 
 instruction_only_format = '''
 You are an expert at writing assertion test cases and below is a question with function signature and completed code solution. 
@@ -233,7 +230,7 @@ def extract_test_cases(content):
 
 def generate_tests(problems, prompt_format, model):
     """Generate test cases for a dataset using vLLM in batch."""
-    llm = LLM(model=model)
+    llm = LLM(model=model, tensor_parallel_size=torch.cuda.device_count())
     sampling_params = SamplingParams(
         temperature=0,
         max_tokens=512,
@@ -263,4 +260,5 @@ def generate_tests(problems, prompt_format, model):
         test_inputs.append(inputs)
         test_outputs.append(outputs)
     print(f"Ratio of malformed test cases: {malformed_count / len(chat_outputs)}")
+    cleanup()
     return test_inputs, test_outputs
