@@ -3,7 +3,7 @@ from datasets import load_dataset
 from open_r1.rewards import code_reward
 from code_generation import generate_code
 from test_case_generation import generate_tests
-
+from utils import extract_mbpp_test_cases
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -60,7 +60,29 @@ def main():
     rewards = code_reward(test_completions, num_parallel=256, **reward_kwargs)
     rewards = [rewards[i:i+len(example["generated_code"])] for i in range(0, len(rewards), len(example["generated_code"]))]
     dataset = dataset.add_column(name="rewards", column=rewards)
+    
+
+    gt_rewards_kwargs = dict()
+    gt_verification_info = []
+    gt_rewards_kwargs["verification_info"] = []
+    for example in dataset:
+        gt_tests = example["test_list"] + example["challenge_test_list"]
+        inputs, outputs = extract_mbpp_test_cases(gt_tests)
+        test_input = "\n".join(inputs)
+        test_output = "\n".join(outputs)
+        gt_verification_info += [
+            {
+                "language": "python",
+                "test_cases": [{"input": test_input, "output": test_output, "type": "stdin_stdout"}],
+            }
+        ]
+        gt_rewards_kwargs["verification_info"] += [example["verification_info"] for _ in example["generated_code"]]
+    dataset = dataset.add_column(name="gt_verification_info", column=gt_verification_info)
+    gt_rewards = code_reward(test_completions, num_parallel=256, **gt_rewards_kwargs)
+    gt_rewards = [gt_rewards[i:i+len(example["generated_code"])] for i in range(0, len(gt_rewards), len(example["generated_code"]))]
+    dataset = dataset.add_column(name="gt_rewards", column=gt_rewards)
     dataset.push_to_hub(args.output_dataset_name, split=args.dataset_split)
+
 
 
 if __name__ == "__main__":
