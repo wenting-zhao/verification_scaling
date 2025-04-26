@@ -2,7 +2,7 @@
 import re
 from vllm import LLM, SamplingParams
 import torch
-from utils import cleanup
+from verification_scaling.utils import cleanup
 
 instruction_only_format = '''
 You are an expert at writing assertion test cases and below is a question with function signature and completed code solution. 

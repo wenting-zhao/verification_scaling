@@ -24,15 +24,16 @@ def extract_assert_test_cases(assert_statements):
     outputs = []
     
     for statement in assert_statements:
+        print(statement)
         # Skip the "assert " part
         statement = statement.replace("assert ", "")
         
         # Split by the equality operator
-        parts = statement.split(" == ")
+        parts = statement.split("==")
         
         # Extract the function call and expected output
-        func_call = parts[0]
-        expected_output = parts[1].strip('"')
+        func_call = parts[0].strip()
+        expected_output = parts[1].strip('"').strip()
         
         # Find the opening and closing parentheses of the function call
         open_paren_index = func_call.find("(")

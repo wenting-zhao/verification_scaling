@@ -1,6 +1,6 @@
 from vllm import LLM, SamplingParams
 import torch
-from utils import cleanup
+from verification_scaling.utils import cleanup
 code_generation_std_format = '''
 Solve the following coding problem using the programming language python:
 
