@@ -1,8 +1,10 @@
 # SPDX-License-Identifier: MIT
+import argparse
 import re
+from datasets import load_dataset
 from vllm import LLM, SamplingParams
 import torch
-from verification_scaling.utils import cleanup
+from verification_scaling.utils import prepare_mbpp_prompt
 
 instruction_only_format = '''
 You are an expert at writing assertion test cases and below is a question with function signature and test cases. 
@@ -247,7 +249,8 @@ def extract_test_cases(content):
         content = content.split("</think>")[-1]
     pattern = r"<assertion>(.*?)</assertion>"
     matches = re.findall(pattern, content, re.DOTALL)
-    return matches
+    matches = [match.strip() for match in matches]
+    return list(set(matches))
 
 
 def generate_tests(problems, prompt_format, model):
@@ -280,5 +283,35 @@ def generate_tests(problems, prompt_format, model):
             malformed_count += 1
         tests.append(current_tests)
     print(f"Ratio of malformed test cases: {malformed_count / len(chat_outputs)}")
-    cleanup()
     return tests
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model", type=str, required=True, help="Model for test generation")
+    parser.add_argument("--dataset_name", type=str, default="livecodebench", help="Dataset name from HuggingFace")
+    parser.add_argument("--dataset_split", type=str, default="test", help="Dataset split to use")
+    parser.add_argument("--test_prompt_format", type=str, default="instruction_only", help="Prompt format for test generation")
+    args = parser.parse_args()
+
+    dataset = load_dataset(args.dataset_name, split=args.dataset_split, trust_remote_code=True)
+    if "livecodebench" in args.dataset_name:
+        problems = [example['question_content'] for example in dataset]
+        problems = [problem.split("Sample Input 1")[0].split("Example 1")[0].strip() for problem in problems]
+        dataset_name = "livecodebench"
+    elif "mbpp" in args.dataset_name:
+        problems = [prepare_mbpp_prompt(example) for example in dataset]
+        dataset_name = "mbpp"
+    else:
+        raise NotImplementedError("Dataset not supported")
+    tests = generate_tests(problems, args.test_prompt_format, args.model)
+    verification_info = []
+    for test in tests:
+        verification_info.append({
+            "language": "python",
+            "test_cases": test
+        })
+    dataset = dataset.add_column(name="verification_info", column=verification_info)
+    model_name = args.model.split("/")[-1]
+    output_dataset_name = f"wentingzhao/{dataset_name}_{model_name}_generated_tests"
+    dataset.push_to_hub(output_dataset_name, split=args.dataset_split)
