@@ -8,6 +8,7 @@ def parse_args():
     parser.add_argument("--generated_code_dataset_split", type=str, default="test", help="Dataset split for generated code")
     parser.add_argument("--generated_tests_dataset_name", type=str, required=True, help="Dataset name for generated tests")
     parser.add_argument("--generated_tests_dataset_split", type=str, default="test", help="Dataset split for generated tests")
+    parser.add_argument("--num_parallel", type=int, default=20, help="Number of parallel tests to run")
     return parser.parse_args()
 
 
@@ -23,7 +24,7 @@ def main():
     reward_kwargs["verification_info"] = []
     for code, tests in zip(generated_code, generated_tests):
         reward_kwargs["verification_info"] += [tests for _ in code]
-    rewards = code_reward(test_completions, num_parallel=20, **reward_kwargs)
+    rewards = code_reward(test_completions, num_parallel=args.num_parallel, **reward_kwargs)
     num_generations = len(rewards) // len(generated_code)
     rewards = [rewards[i:i+num_generations] for i in range(0, len(rewards), num_generations)]
     out_dataset = generated_code_dataset.add_column(name="rewards", column=rewards)

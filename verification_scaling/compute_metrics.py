@@ -50,5 +50,10 @@ def main():
     
     print(f"Accuracy: {accuracy:.4f} ({accuracy*100:.2f}%)")
 
+    num_generations = len(dataset[args.rewards_column][0])
+    num_passes = sum(1 for one in gt_rewards if sum(one) > 0)
+    pass_at_k = num_passes / len(gt_rewards)
+    print(f"pass@{num_generations}: {pass_at_k} ({pass_at_k*100:.2f}%)")
+
 if __name__ == "__main__":
     main()

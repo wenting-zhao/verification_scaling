@@ -49,6 +49,7 @@ if __name__ == "__main__":
     parser.add_argument("--dataset_split", type=str, default="test", help="Dataset split to use")
     parser.add_argument("--num_generations", type=int, default=10, help="Number of generations per example")
     parser.add_argument("--temperature", type=float, default=0.7, help="Temperature for generation")
+    parser.add_argument("--num_parallel", type=int, default=20, help="Number of parallel generations to run")
     args = parser.parse_args()
 
     dataset = load_dataset(args.dataset_name, split=args.dataset_split, trust_remote_code=True)
@@ -79,7 +80,7 @@ if __name__ == "__main__":
             "test_cases": gt_tests,
         }
         gt_rewards_kwargs["verification_info"] += [gt_tests for _ in example["generated_code"]]
-    gt_rewards = code_reward(test_completions, num_parallel=20, **gt_rewards_kwargs)
+    gt_rewards = code_reward(test_completions, num_parallel=args.num_parallel, **gt_rewards_kwargs)
     gt_rewards = [gt_rewards[i:i+args.num_generations] for i in range(0, len(gt_rewards), args.num_generations)]
     dataset = dataset.add_column(name="gt_rewards", column=gt_rewards)
     num_passes = sum(1 for one in gt_rewards if sum(one) > 0)
