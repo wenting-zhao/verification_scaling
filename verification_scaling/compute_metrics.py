@@ -1,4 +1,5 @@
 import argparse
+from collections import Counter
 import datasets
 
 def compute_accuracy(rewards, gt_rewards):
@@ -54,6 +55,21 @@ def main():
     num_passes = sum(1 for one in gt_rewards if sum(one) > 0)
     pass_at_k = num_passes / len(gt_rewards)
     print(f"pass@{num_generations}: {pass_at_k} ({pass_at_k*100:.2f}%)")
+
+    flat_rewards = []
+    flat_gt_rewards = []
+    for example in dataset:
+        if len(example['verification_info']['test_cases']) == 0:
+            flat_rewards += [-1] * len(example['rewards'])
+            flat_gt_rewards += example['gt_rewards']
+        else:
+            flat_rewards += example['rewards']
+            flat_gt_rewards += example['gt_rewards']
+    test_gen_accuracy = [i==j for i, j in zip(flat_rewards, flat_gt_rewards)]
+    test_gen_accuracy = sum(test_gen_accuracy) / len(test_gen_accuracy)
+    print(f"test_gen_accuracy: {test_gen_accuracy} ({test_gen_accuracy*100:.2f}%)")
+    malformed_rate = Counter(flat_rewards)[-1] / len(flat_rewards)
+    print(f"malformated test cases: {malformed_rate} ({malformed_rate*100:.2f}%)")
 
 if __name__ == "__main__":
     main()
