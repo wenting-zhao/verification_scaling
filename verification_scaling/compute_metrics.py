@@ -23,7 +23,7 @@ def compute_accuracy(rewards, gt_rewards):
             if reward == 1:
                 if gt_reward_seq[i] == 1:
                     correct_ones += 1
-                    break
+                break
     
     return correct_ones / len(rewards)
 
@@ -60,11 +60,11 @@ def main():
     flat_gt_rewards = []
     for example in dataset:
         if len(example['verification_info']['test_cases']) == 0:
-            flat_rewards += [-1] * len(example['rewards'])
-            flat_gt_rewards += example['gt_rewards']
+            flat_rewards += [-1] * len(example[args.rewards_column])
+            flat_gt_rewards += example[args.gt_rewards_column]
         else:
-            flat_rewards += example['rewards']
-            flat_gt_rewards += example['gt_rewards']
+            flat_rewards += example[args.rewards_column]
+            flat_gt_rewards += example[args.gt_rewards_column]
     test_gen_accuracy = [i==j for i, j in zip(flat_rewards, flat_gt_rewards)]
     test_gen_accuracy = sum(test_gen_accuracy) / len(test_gen_accuracy)
     print(f"test_gen_accuracy: {test_gen_accuracy} ({test_gen_accuracy*100:.2f}%)")

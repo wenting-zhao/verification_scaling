@@ -69,6 +69,7 @@ if __name__ == "__main__":
         num_generations=args.num_generations
     )
     dataset = dataset.add_column(name="generated_code", column=generated_code)
+    generated_code = dataset["generated_code"]
     test_completions = [{"content": sample} for one in generated_code for sample in one]
 
     gt_rewards_kwargs = dict()
@@ -85,6 +86,19 @@ if __name__ == "__main__":
     dataset = dataset.add_column(name="gt_rewards", column=gt_rewards)
     num_passes = sum(1 for one in gt_rewards if sum(one) > 0)
     print(f"pass@{args.num_generations}: {num_passes / len(gt_rewards)}")
+
+    execution_rewards_kwargs = dict()
+    execution_rewards_kwargs["verification_info"] = []
+    for example in dataset:
+        gt_tests = example["test_list"] + example["challenge_test_list"]
+        gt_tests = {
+            "language": "python",
+            "test_cases": [],
+        }
+        execution_rewards_kwargs["verification_info"] += [gt_tests for _ in example["generated_code"]]
+    execution_rewards = code_reward(test_completions, num_parallel=args.num_parallel, **execution_rewards_kwargs)
+    execution_rewards = [execution_rewards[i:i+args.num_generations] for i in range(0, len(execution_rewards), args.num_generations)]
+    dataset = dataset.add_column(name="execution_rewards", column=execution_rewards)
 
     model_name = args.model.split("/")[-1]
     output_dataset_name = f"wentingzhao/{dataset_name}_{model_name}_temp{args.temperature}_num{args.num_generations}_generated_code"
