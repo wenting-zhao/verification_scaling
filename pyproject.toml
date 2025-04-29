@@ -6,10 +6,14 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "e2b-code-interpreter>=1.2.1",
+    "flash-attn>=2.7.4.post1",
     "open-r1",
     "torch>=2.6.0",
+    "torchvision>=0.21.0",
+    "verl",
     "vllm>=0.8.3",
 ]
 
 [tool.uv.sources]
 open-r1 = { git = "https://github.com/huggingface/open-r1.git" }
+verl = { git = "https://github.com/volcengine/verl.git" }
