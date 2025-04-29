@@ -65,11 +65,23 @@ def main():
         else:
             flat_rewards += example[args.rewards_column]
             flat_gt_rewards += example[args.gt_rewards_column]
-    test_gen_accuracy = [i==j for i, j in zip(flat_rewards, flat_gt_rewards)]
+    test_gen_ha_accuracy = [i==j for i, j in zip(flat_rewards, flat_gt_rewards)]
+    test_gen_ha_accuracy = sum(test_gen_ha_accuracy) / len(test_gen_ha_accuracy)
+    print(f"test_gen_ha_accuracy: {test_gen_ha_accuracy} ({test_gen_ha_accuracy*100:.2f}%)")
+    test_gen_accuracy = [i==j for i, j in zip(rewards, gt_rewards)]
     test_gen_accuracy = sum(test_gen_accuracy) / len(test_gen_accuracy)
     print(f"test_gen_accuracy: {test_gen_accuracy} ({test_gen_accuracy*100:.2f}%)")
     malformed_rate = Counter(flat_rewards)[-1] / len(flat_rewards)
     print(f"malformated test cases: {malformed_rate} ({malformed_rate*100:.2f}%)")
 
+    filtered_rewards = []
+    filtered_gt_rewards = []
+    for i, j in zip(rewards, gt_rewards):
+        if 0 in j and 1 in j:
+            filtered_rewards.append(i)
+            filtered_gt_rewards.append(j)
+    test_gen_accuracy = [i==j for i, j in zip(filtered_rewards, filtered_gt_rewards)]
+    test_gen_accuracy = sum(test_gen_accuracy) / len(test_gen_accuracy)
+    print(f"filtered test_gen_accuracy: {test_gen_accuracy} ({test_gen_accuracy*100:.2f}%)")
 if __name__ == "__main__":
     main()
