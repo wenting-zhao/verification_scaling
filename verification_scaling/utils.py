@@ -104,14 +104,15 @@ def code_reward(completions, num_parallel: int = 2, **kwargs) -> list[float]:
     def evaluate_code(code, test_cases):
         code = code + "\\n" + "\\n".join(test_cases)
         exec_timeout = 5
-
-        process = subprocess.run(
-            ["python3", "-c", code],
-            text=True,
-            capture_output=True,
-            timeout=exec_timeout
-        )
-
+        try:
+            process = subprocess.run(
+                ["python3", "-c", code],
+                text=True,
+                capture_output=True,
+                timeout=exec_timeout
+            )
+        except subprocess.TimeoutExpired:
+            return 0
         if process.returncode != 0:  # Error in execution
             reward = 0
         else:
@@ -160,12 +161,16 @@ def get_function_output(code_list, num_parallel: int = 2, **kwargs) -> list[floa
         outputs = []
         for test in test_cases:
             code_to_run = code + "\\n" + 'print('+test+')'
-            process = subprocess.run(
-                ["python3", "-c", code_to_run],
-                text=True,
-                capture_output=True,
-                timeout=exec_timeout
-            )
+            try:
+                process = subprocess.run(
+                    ["python3", "-c", code_to_run],
+                    text=True,
+                    capture_output=True,
+                    timeout=exec_timeout
+                )
+            except subprocess.TimeoutExpired:
+                outputs.append(None)
+                continue
 
             if process.returncode != 0:  # Error in execution
                 outputs.append(None)
