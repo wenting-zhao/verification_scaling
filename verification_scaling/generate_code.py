@@ -101,5 +101,5 @@ if __name__ == "__main__":
     dataset = dataset.add_column(name="execution_rewards", column=execution_rewards)
 
     model_name = args.model.split("/")[-1]
-    output_dataset_name = f"wentingzhao/{dataset_name}_{model_name}_temp{args.temperature}_num{args.num_generations}_generated_code"
+    output_dataset_name = f"test-gen/{dataset_name}_{model_name}_t{args.temperature}_n{args.num_generations}_generated_code"
     dataset.push_to_hub(output_dataset_name, split=args.dataset_split)

@@ -6,9 +6,20 @@ from vllm import LLM, SamplingParams
 import torch
 from verification_scaling.utils import prepare_mbpp_prompt
 
+
+instruction_only_format_no_few_shot = '''
+You are an expert at writing assertion test cases and below is a question with function signature and test cases.
+You must generate a few assert test cases that will be used to evaluate the code solution's correctness. You must adhere to the provided function signature and test case format.
+Here is the question you must provide assertion test cases for:
+
+Question: {input}
+Test Cases:
+'''
+
+
 instruction_only_format = '''
 You are an expert at writing assertion test cases and below is a question with function signature and test cases. 
-You must generate 10 assert test cases that will be used to evaluate the code solution's correctness. You must adhere to the provided function signature and test case format.
+You must generate a few assert test cases that will be used to evaluate the code solution's correctness. You must adhere to the provided function signature and test case format.
 Here are some examples that you should use as a reference:
 
 Question: 
@@ -115,7 +126,7 @@ Test Cases:
 
 instruction_solution_format = '''
 You are an expert at writing assertion test cases and below is a question with function signature and completed code solution. 
-You must generate 10 assert statements that will be used to evaluate the code solution's correctness which may or may not be correct.
+You must generate a few assert statements that will be used to evaluate the code solution's correctness which may or may not be correct.
 Here are some examples that you should use as a reference:
 
 Question: 
@@ -250,21 +261,33 @@ def extract_test_cases(content):
     pattern = r"<assertion>(.*?)</assertion>"
     matches = re.findall(pattern, content, re.DOTALL)
     matches = [match.strip() for match in matches]
-    return list(set(matches))
+    return matches
+
+def deduplicate_tests(tests):
+    unique_inputs = set()
+    unique_tests = []
+    for test in tests:
+        input = test.replace("assert ", "").split("==")[0].strip()
+        if input not in unique_inputs:
+            unique_inputs.add(input)
+            unique_tests.append(test)
+    return unique_tests
 
 
-def generate_tests(problems, prompt_format, model):
+def generate_tests(problems, prompt_format, model, temperature, num_generations):
     """Generate test cases for a dataset using vLLM in batch."""
     llm = LLM(model=model, tensor_parallel_size=torch.cuda.device_count())
     sampling_params = SamplingParams(
-        temperature=0,
+        temperature=temperature,
         max_tokens=512,
-        n=1,    
+        n=num_generations,
         )
     formatted_prompts = []
     for problem in problems:
         if prompt_format == "instruction_only":
             formatted_input = instruction_only_format.format(input=problem)
+        elif prompt_format == "instruction_only_no_few_shot":
+            formatted_input = instruction_only_format_no_few_shot.format(input=problem)
         elif prompt_format == "instruction_solution":
             #formatted_input = instruction_solution_format.format(input=problem, code=code)
             raise NotImplementedError("Instruction solution format not implemented")
@@ -274,16 +297,20 @@ def generate_tests(problems, prompt_format, model):
     messages = [[{"role": "user", "content": prompt}] for prompt in formatted_prompts]
     chat_outputs = llm.chat(messages, sampling_params)
     
-    tests = []
+    all_tests = []
     malformed_count = 0
     for output in chat_outputs:
-        response = output.outputs[0].text
-        current_tests = extract_test_cases(response)
-        if current_tests == []:
-            malformed_count += 1
-        tests.append(current_tests)
-    print(f"Ratio of malformed test cases: {malformed_count / len(chat_outputs)}")
-    return tests
+        current_tests = []
+        for response in output.outputs:
+            tests = extract_test_cases(response.text)
+            if len(tests) == 0:
+                malformed_count += 1
+            current_tests.extend(tests)
+        current_tests = list(set(current_tests))
+        current_tests = deduplicate_tests(current_tests)
+        all_tests.append(current_tests)
+    print(f"Ratio of malformed test cases: {malformed_count / (len(chat_outputs) * num_generations)}")
+    return all_tests
 
 
 if __name__ == "__main__":
@@ -292,6 +319,8 @@ if __name__ == "__main__":
     parser.add_argument("--dataset_name", type=str, default="livecodebench", help="Dataset name from HuggingFace")
     parser.add_argument("--dataset_split", type=str, default="test", help="Dataset split to use")
     parser.add_argument("--test_prompt_format", type=str, default="instruction_only", help="Prompt format for test generation")
+    parser.add_argument("--temperature", type=float, default=0, help="Temperature for test generation")
+    parser.add_argument("--num_generations", type=int, default=1, help="Number of generations to perform")
     args = parser.parse_args()
 
     dataset = load_dataset(args.dataset_name, split=args.dataset_split, trust_remote_code=True)
@@ -304,14 +333,14 @@ if __name__ == "__main__":
         dataset_name = "mbpp"
     else:
         raise NotImplementedError("Dataset not supported")
-    tests = generate_tests(problems, args.test_prompt_format, args.model)
+    all_tests = generate_tests(problems, args.test_prompt_format, args.model, args.temperature, args.num_generations)
     verification_info = []
-    for test in tests:
+    for tests in all_tests:
         verification_info.append({
             "language": "python",
-            "test_cases": test
+            "test_cases": tests,
         })
     dataset = dataset.add_column(name="verification_info", column=verification_info)
     model_name = args.model.split("/")[-1]
-    output_dataset_name = f"wentingzhao/{dataset_name}_{model_name}_generated_tests"
+    output_dataset_name = f"test-gen/{dataset_name}_{model_name}_t{args.temperature}_n{args.num_generations}_generated_tests"
     dataset.push_to_hub(output_dataset_name, split=args.dataset_split)
