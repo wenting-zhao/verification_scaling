@@ -143,6 +143,59 @@ def code_reward(completions, num_parallel: int = 2, **kwargs) -> list[float]:
     return rewards
 
 
+def get_function_output(code_list, num_parallel: int = 2, **kwargs) -> list[float]:
+    """Get the output of the ground truth function given an input.
+
+    Assumes the dataset contains a `verification_info` column with test cases.
+    """
+
+    # TODO: add support for other languages in E2B: https://e2b.dev/docs/code-interpreting/supported-languages
+    """Returns a reward function that evaluates code snippets in a sandbox."""
+    evaluation_script_template = """
+    import subprocess
+    import json
+
+    def evaluate_code(code, test_cases):
+        exec_timeout = 5
+        outputs = []
+        for test in test_cases:
+            code_to_run = code + "\\n" + 'print('+test+')'
+            process = subprocess.run(
+                ["python3", "-c", code_to_run],
+                text=True,
+                capture_output=True,
+                timeout=exec_timeout
+            )
+
+            if process.returncode != 0:  # Error in execution
+                outputs.append(None)
+            else:
+                outputs.append(process.stdout.strip())
+
+        return outputs
+    code_snippet = {code}
+    test_cases = json.loads({test_cases})
+
+    evaluate_code(code_snippet, test_cases)
+    """
+    scripts = [
+        evaluation_script_template.format(code=json.dumps(code), test_cases=json.dumps(json.dumps(info["test_cases"])))
+        for code, info in zip(code_list, kwargs["verification_info"])
+    ]
+
+    language = kwargs["verification_info"][0]["language"]
+    if not all(v["language"] == language for v in kwargs["verification_info"]):
+        raise ValueError("All verification_info must have the same language", kwargs["verification_info"])
+
+    try:
+        outputs = run_async_from_sync(scripts, language, num_parallel)
+    except Exception as e:
+        print(f"Error from E2B executor: {e}")
+        outputs = [None] * len(code_list)
+
+    return outputs
+
+
 def run_async_from_sync(scripts: list[str], language: str, num_parallel: int) -> list[float]:
     """Function wrapping the `run_async` function."""
     # Create a new event loop and set it
@@ -185,7 +238,7 @@ async def run_script(script: str, language: str, semaphore: asyncio.Semaphore) -
         try:
             sandbox = await AsyncSandbox.create(timeout=SANDBOX_TIMEOUT, request_timeout=REQUEST_TIMEOUT)
             execution = await asyncio.wait_for(sandbox.run_code(script, language=language), timeout=ASYNCIO_TIMEOUT)
-            return float(execution.text)
+            return execution.text
         except (TypeError, ValueError):
             return 0.0
         except asyncio.TimeoutError:

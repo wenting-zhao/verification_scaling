@@ -1,7 +1,6 @@
 import argparse
-from datasets import load_dataset, Dataset
+from datasets import load_dataset
 from verification_scaling.utils import code_reward
-from verification_scaling.utils import extract_code
 
 def parse_args():
     parser = argparse.ArgumentParser()
