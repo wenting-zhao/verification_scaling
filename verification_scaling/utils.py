@@ -72,10 +72,8 @@ def generate_function_doc(assertion, implementation, description):
     formatted_function = f"""def {func_name}({param_str}):
     \"\"\"
     {description}
-    
-    >>> {function_call}
-    {expected_result}
     \"\"\"
+        pass
     """
 
     return formatted_function

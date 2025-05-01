@@ -25,6 +25,7 @@ def main():
     for code, tests in zip(generated_code, generated_tests):
         reward_kwargs["verification_info"] += [tests for _ in code]
     rewards = code_reward(test_completions, num_parallel=args.num_parallel, **reward_kwargs)
+    rewards = [float(reward) for reward in rewards]
     num_generations = len(rewards) // len(generated_code)
     rewards = [rewards[i:i+num_generations] for i in range(0, len(rewards), num_generations)]
     out_dataset = generated_code_dataset.add_column(name="rewards", column=rewards)
@@ -32,6 +33,9 @@ def main():
     code_dataset_name = args.generated_code_dataset_name.split("/")[-1].replace("_generated_code", "")
     test_dataset_name = args.generated_tests_dataset_name.split("/")[-1].replace("_generated_tests", "")
     output_dataset_name = f"code_{code_dataset_name}_tests_{test_dataset_name}"
+    # HuggingFace dataset name limit is 96 characters
+    if len(output_dataset_name) > 96:
+        output_dataset_name = output_dataset_name.lower().replace("-instruct", "")
     out_dataset.push_to_hub(output_dataset_name, split=args.generated_code_dataset_split)
 
 
