@@ -28,7 +28,7 @@ def cleanup() -> None:
 
 
 def format_test_cases(tests):
-    tests = [x.replace(" == ", "=").replace(" ==", "==").replace("== ", "==") for x in tests]
+    tests = [x.replace(" == ", "==").replace(" ==", "==").replace("== ", "==") for x in tests]
     tests = ["<assertion>\n"+x.strip()+"\n</assertion>" for x in tests]
     tests = "\n".join(tests)
     return tests
