@@ -34,6 +34,145 @@ def format_test_cases(tests):
     return tests
 
 
+def sort_by_input_length(test_cases):
+    def extract_input_length(test_case):
+        # Extract everything between the outermost parentheses
+        start_idx = test_case.find("(")
+        end_idx = test_case.split("==")[0].rfind(")")
+
+        if start_idx != -1 and end_idx != -1:
+            # Get the entire input string
+            input_str = test_case[start_idx+1:end_idx]
+            return len(input_str)
+        return 0
+
+    # Sort the test cases based on the length of the input
+    return sorted(test_cases, key=extract_input_length)
+
+
+def get_output_to_test_cases_map(test_cases):
+    """
+    Group test cases by their expected outputs.
+
+    Args:
+        test_cases: List of test case assertions
+
+    Returns:
+        Dictionary mapping outputs to lists of test cases
+    """
+    output_to_test_cases = {}
+
+    for test_case in test_cases:
+        # Find the expected output (after == or =)
+        if "==" in test_case:
+            output = test_case.split("==")[1].strip()
+        elif "=" in test_case:
+            output = test_case.split("=")[1].strip()
+        else:
+            continue
+
+        # Remove surrounding quotes if present
+        output = output.strip('"\'')
+
+        # Add test case to the list for this output
+        if output not in output_to_test_cases:
+            output_to_test_cases[output] = []
+        output_to_test_cases[output].append(test_case)
+
+    return output_to_test_cases
+
+
+def get_test_cases_with_unique_outputs(test_cases, n):
+    if len(test_cases) == 0:
+        return []
+
+    # Group test cases by their outputs
+    output_to_test_cases = get_output_to_test_cases_map(test_cases)
+
+    # Get unique outputs
+    unique_outputs = list(output_to_test_cases.keys())
+
+    # Initialize result list
+    result = []
+
+    # Fill result list with n test cases
+    for i in range(n):
+        # Get the output to use (cycling through the unique outputs)
+        output_index = i % len(unique_outputs)
+        output = unique_outputs[output_index]
+
+        # Get a test case for this output
+        test_cases_for_output = output_to_test_cases[output]
+        case_index = (i // len(unique_outputs)) % len(test_cases_for_output)
+        result.append(test_cases_for_output[case_index])
+
+    return result
+
+
+def get_easy_test_cases_with_unique_outputs(test_cases, n):
+    if len(test_cases) == 0:
+        return []
+
+    # Parse test cases to extract outputs and calculate input lengths
+    parsed_tests = []
+
+    for test in test_cases:
+        # Extract output
+        if "==" in test:
+            output = test.split("==")[1].strip()
+        else:
+            continue
+
+        # Remove quotes
+        output = output.strip('"\'')
+
+        # Extract arguments
+        start = test.find("(")
+        end = test.rfind(")")
+        if start == -1 or end == -1:
+            continue
+
+        args = test[start+1:end]
+        args_length = len(args)
+
+        parsed_tests.append((test, output, args_length))
+
+    # Sort all tests by argument length (shortest first)
+    parsed_tests.sort(key=lambda x: x[2])
+
+    # Take the first n tests with unique outputs
+    result = []
+    seen_outputs = set()
+
+    for test, output, _ in parsed_tests:
+        if output not in seen_outputs:
+            result.append(test)
+            seen_outputs.add(output)
+
+            if len(result) >= n:
+                break
+
+    # If we still need more, add additional tests with already seen outputs
+    if len(result) < n:
+        output_counts = {}
+        for test, output, _ in parsed_tests:
+            if test in result:
+                continue
+
+            if output not in output_counts:
+                output_counts[output] = 0
+
+            # Only consider tests where we've already used this output
+            if output in seen_outputs:
+                output_counts[output] += 1
+                if output_counts[output] == 1:  # Take the next shortest for each output
+                    result.append(test)
+                    if len(result) >= n:
+                        break
+
+    return result
+
+
 def prepare_mbpp_prompt(example):
     prompt = generate_function_doc(example['test_list'][0], example['code'], example['text'])
     return prompt
