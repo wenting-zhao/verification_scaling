@@ -66,8 +66,6 @@ def get_output_to_test_cases_map(test_cases):
         # Find the expected output (after == or =)
         if "==" in test_case:
             output = test_case.split("==")[1].strip()
-        elif "=" in test_case:
-            output = test_case.split("=")[1].strip()
         else:
             continue
 
@@ -255,7 +253,7 @@ def code_reward(completions, num_parallel: int = 2, **kwargs) -> list[float]:
                 capture_output=True,
                 timeout=exec_timeout
             )
-        except subprocess.TimeoutExpired:
+        except Exception:
             return 0
         if process.returncode != 0:  # Error in execution
             reward = 0
@@ -312,9 +310,8 @@ def get_function_output(code_list, num_parallel: int = 2, **kwargs) -> list[floa
                     capture_output=True,
                     timeout=exec_timeout
                 )
-            except subprocess.TimeoutExpired:
+            except Exception:
                 outputs.append(None)
-                continue
 
             if process.returncode != 0:  # Error in execution
                 outputs.append(None)
