@@ -31,7 +31,9 @@ if __name__ == '__main__':
             problem = prepare_mbpp_prompt(example)
             problem = instruction_only_format_no_few_shot.format(input=problem)
 
-            tests = example.pop("test_list") + example.pop("challenge_test_list")
+            tests = example.pop("test_list")
+            if split != "train":
+                tests += example.pop("challenge_test_list")
             tests = ["<assertion>\n"+x.strip()+"\n</assertion>" for x in tests]
             tests = "\n".join(tests)
 
