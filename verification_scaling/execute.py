@@ -31,7 +31,7 @@ def replace_assert_output(assert_statement, new_value):
         ast.literal_eval(new_value)
         # If it evaluates successfully, use it as-is (it's a valid Python literal)
         formatted_value = new_value
-    except (ValueError, SyntaxError):
+    except (ValueError, SyntaxError, TypeError):
         # If evaluation fails, treat as a regular string
         formatted_value = f'"{new_value}"'
     def replace_match(match):
@@ -49,7 +49,7 @@ def main():
     kwargs = dict()
     kwargs["verification_info"] = verification_info
     outputs = get_function_output(code, num_parallel=args.num_parallel, **kwargs)
-    outputs = [eval(output.replace("\n ", " ")) if output != 0.0 else [None] for output in outputs]
+    outputs = [ast.literal_eval(output.replace("\n ", " ")) if output != 0.0 and output is not None else [None] for output in outputs]
     new_verification_info = []
     for info, output in zip(dataset["verification_info"], outputs):
         new_info = dict()
