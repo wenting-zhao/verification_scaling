@@ -73,6 +73,9 @@ def main():
     # Extract the columns
     rewards = dataset[args.rewards_column]
     gt_rewards = dataset[args.gt_rewards_column]
+    test_cases = [example['verification_info']['test_cases'] for example in dataset]
+
+    print("average #test cases:", sum(len(i) for i in test_cases) / len(test_cases))
     
     # Compute the accuracy
     print("Computing accuracy...")

@@ -109,7 +109,9 @@ if __name__ == '__main__':
             return process_fn
 
         train_dataset = train_dataset.map(function=make_map_fn('train', easy=args.easy, unique=args.unique, easy_unique=args.easy_unique), with_indices=True)
+        train_dataset = train_dataset.filter(lambda example: example["extra_info"]["answer"] != "")
         test_dataset = test_dataset.map(function=make_map_fn('test', easy=args.easy, unique=args.unique, easy_unique=args.easy_unique), with_indices=True)
+        test_dataset = test_dataset.filter(lambda example: example["extra_info"]["answer"] != "")
 
     if args.easy:
         local_dir = args.local_dir + '_easy'
