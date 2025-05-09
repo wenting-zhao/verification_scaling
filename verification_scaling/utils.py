@@ -173,6 +173,16 @@ def get_easy_test_cases_with_unique_outputs(test_cases, n):
     return result
 
 
+def prepare_humaneval_prompt(example):
+    return example['prompt']
+
+
+def prepare_livecodebench_prompt(example):
+    starter_code = example['starter_code'].replace("self, ", "").replace("self", "").replace("pass", "").strip()
+    question_content = "\n".join([f"    {one}" for one in example['question_content'].split("\n")])
+    prompt = f"{starter_code}\n    \"\"\"\n{question_content}\n    \"\"\"\n    pass"
+    return prompt
+
 def prepare_mbpp_prompt(example):
     prompt = generate_function_doc(example['test_list'][0], example['code'], example['text'])
     return prompt

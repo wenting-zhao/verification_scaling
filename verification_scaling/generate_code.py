@@ -1,10 +1,13 @@
 import argparse
+import ast
 from datasets import load_dataset
 from vllm import LLM, SamplingParams
 import torch
 from verification_scaling.utils import (
     code_reward,
-    prepare_mbpp_prompt
+    prepare_mbpp_prompt,
+    prepare_humaneval_prompt,
+    prepare_livecodebench_prompt
 )
 
 
@@ -54,12 +57,14 @@ if __name__ == "__main__":
 
     dataset = load_dataset(args.dataset_name, split=args.dataset_split, trust_remote_code=True)
     if "livecodebench" in args.dataset_name:
-        problems = [example['question_content'] for example in dataset]
-        problems = [problem.split("Sample Input 1")[0].split("Example 1")[0].strip() for problem in problems]
+        problems = [prepare_livecodebench_prompt(example) for example in dataset]
         dataset_name = "livecodebench"
     elif "mbpp" in args.dataset_name:
         problems = [prepare_mbpp_prompt(example) for example in dataset]
         dataset_name = "mbpp"
+    elif "humaneval" in args.dataset_name.lower():
+        problems = [prepare_humaneval_prompt(example) for example in dataset]
+        dataset_name = "humaneval"
     else:
         raise NotImplementedError("Dataset not supported")
     generated_code = generate_code(
@@ -75,7 +80,21 @@ if __name__ == "__main__":
     gt_rewards_kwargs = dict()
     gt_rewards_kwargs["verification_info"] = []
     for example in dataset:
-        gt_tests = example["test_list"] + example["challenge_test_list"]
+        if "humaneval" in args.dataset_name.lower():
+            gt_tests = [test.strip() for test in example["test"].split("\n") if test.strip().startswith("assert")]
+            gt_tests = [test.replace("candidate(", example["entry_point"].strip()+"(") for test in gt_tests]
+            for test in gt_tests:
+                print(test)
+        elif "livecodebench" in args.dataset_name.lower():
+            function_call = example["function_name"]
+            gt_tests = []
+            parsed_tests = ast.literal_eval(example["test"])
+            for one in parsed_tests:
+                input_args = ", ".join(ast.literal_eval(one["input"]))
+                gt_test = f"assert {function_call}({input_args}) == {one['output']}"
+                gt_tests.append(gt_test)
+        else:
+            gt_tests = example["test_list"] + example["challenge_test_list"]
         gt_tests = {
             "language": "python",
             "test_cases": gt_tests,

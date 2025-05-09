@@ -39,10 +39,35 @@ def replace_assert_output(assert_statement, new_value):
     return re.sub(pattern, replace_match, assert_statement)
 
 
+def extract_function_signature(code_block: str) -> str:
+    """
+    Extract the function signature line from a code block.
+
+    Args:
+        code_block: A string containing Python code with function definitions
+
+    Returns:
+        The function signature line (def line) of the first function found
+    """
+    # This looks for 'def', function name, parameters, and return type hint if present
+    pattern = r'def\s+\w+\s*\([^)]*\)(?:\s*->\s*[^:]+)?:'
+
+    match = re.search(pattern, code_block)
+    if match:
+        return match.group(0).rstrip(':')  # Remove the trailing colon
+    return ""
+
+
 def main():
     args = parse_args()
     dataset = load_dataset(args.dataset_name, split=args.dataset_split, trust_remote_code=True)
-    code = dataset["code"]
+    if "humaneval" in args.dataset_name.lower():
+        code = []
+        for example in dataset:
+            function_signature = extract_function_signature(example["prompt"])
+            code.append(function_signature + ":\n" + example["canonical_solution"])
+    else:
+        code = dataset["code"]
     verification_info = deepcopy(dataset["verification_info"])
     for info in verification_info:
         info["test_cases"] = [test.replace("assert ", "").split("==")[0].strip() for test in info["test_cases"]]

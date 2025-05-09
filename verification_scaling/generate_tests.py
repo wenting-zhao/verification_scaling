@@ -4,7 +4,11 @@ import re
 from datasets import load_dataset
 from vllm import LLM, SamplingParams
 import torch
-from verification_scaling.utils import prepare_mbpp_prompt
+from verification_scaling.utils import (
+    prepare_mbpp_prompt,
+    prepare_humaneval_prompt,
+    prepare_livecodebench_prompt
+)
 
 
 instruction_only_format_no_few_shot = '''
@@ -338,17 +342,20 @@ if __name__ == "__main__":
 
     dataset = load_dataset(args.dataset_name, split=args.dataset_split, trust_remote_code=True)
     if "livecodebench" in args.dataset_name:
-        problems = [example['question_content'] for example in dataset]
-        problems = [problem.split("Sample Input 1")[0].split("Example 1")[0].strip() for problem in problems]
+        problems = [prepare_livecodebench_prompt(example) for example in dataset]
         dataset_name = "livecodebench"
     elif "mbpp" in args.dataset_name:
         problems = [prepare_mbpp_prompt(example) for example in dataset]
         dataset_name = "mbpp"
+    elif "humaneval" in args.dataset_name.lower():
+        problems = [prepare_humaneval_prompt(example) for example in dataset]
+        dataset_name = "humaneval"
     elif "combined" in args.dataset_name:
         problems = [prepare_mbpp_prompt(example) for example in dataset]
         dataset_name = "combined"
     else:
         raise NotImplementedError("Dataset not supported")
+
     all_tests = generate_tests(problems, args.test_prompt_format, args.model, args.temperature, args.num_generations, args.bucket)
     verification_info = []
     for tests in all_tests:
