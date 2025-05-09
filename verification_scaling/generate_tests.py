@@ -341,9 +341,12 @@ if __name__ == "__main__":
         problems = [example['question_content'] for example in dataset]
         problems = [problem.split("Sample Input 1")[0].split("Example 1")[0].strip() for problem in problems]
         dataset_name = "livecodebench"
-    elif "mbpp" in args.dataset_name or "combined" in args.dataset_name:
+    elif "mbpp" in args.dataset_name:
         problems = [prepare_mbpp_prompt(example) for example in dataset]
         dataset_name = "mbpp"
+    elif "combined" in args.dataset_name:
+        problems = [prepare_mbpp_prompt(example) for example in dataset]
+        dataset_name = "combined"
     else:
         raise NotImplementedError("Dataset not supported")
     all_tests = generate_tests(problems, args.test_prompt_format, args.model, args.temperature, args.num_generations, args.bucket)

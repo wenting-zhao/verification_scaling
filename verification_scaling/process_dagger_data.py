@@ -128,3 +128,5 @@ if __name__ == '__main__':
     train_dataset.to_parquet(os.path.join(local_dir, 'train.parquet'))
     test_dataset.to_parquet(os.path.join(local_dir, 'test.parquet'))
 
+    print("average #tests:", sum(example["extra_info"]["answer"].count("<assertion>") for example in train_dataset) / len(train_dataset))
+    print("average #tokens:", sum(len(example["extra_info"]["answer"].split()) for example in train_dataset) / len(train_dataset))
