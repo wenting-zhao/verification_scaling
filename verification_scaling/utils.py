@@ -95,6 +95,8 @@ def get_test_cases_with_unique_outputs(test_cases, n):
 
     # Fill result list with n test cases
     for i in range(n):
+        if len(unique_outputs) == 0:
+            break
         # Get the output to use (cycling through the unique outputs)
         output_index = i % len(unique_outputs)
         output = unique_outputs[output_index]
