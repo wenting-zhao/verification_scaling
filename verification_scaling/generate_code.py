@@ -83,8 +83,6 @@ if __name__ == "__main__":
         if "humaneval" in args.dataset_name.lower():
             gt_tests = [test.strip() for test in example["test"].split("\n") if test.strip().startswith("assert")]
             gt_tests = [test.replace("candidate(", example["entry_point"].strip()+"(") for test in gt_tests]
-            for test in gt_tests:
-                print(test)
         elif "livecodebench" in args.dataset_name.lower():
             function_call = example["function_name"]
             gt_tests = []
