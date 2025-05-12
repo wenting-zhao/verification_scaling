@@ -104,19 +104,6 @@ if __name__ == "__main__":
     num_passes = sum(1 for one in gt_rewards if sum(one) > 0)
     print(f"pass@{args.num_generations}: {num_passes / len(gt_rewards)}")
 
-    execution_rewards_kwargs = dict()
-    execution_rewards_kwargs["verification_info"] = []
-    for example in dataset:
-        gt_tests = example["test_list"] + example["challenge_test_list"]
-        gt_tests = {
-            "language": "python",
-            "test_cases": [],
-        }
-        execution_rewards_kwargs["verification_info"] += [gt_tests for _ in example["generated_code"]]
-    execution_rewards = code_reward(test_completions, num_parallel=args.num_parallel, **execution_rewards_kwargs)
-    execution_rewards = [execution_rewards[i:i+args.num_generations] for i in range(0, len(execution_rewards), args.num_generations)]
-    dataset = dataset.add_column(name="execution_rewards", column=execution_rewards)
-
     model_name = args.model.split("/")[-1]
     output_dataset_name = f"test-gen/{dataset_name}_{model_name}_t{args.temperature}_n{args.num_generations}_generated_code"
     dataset.push_to_hub(output_dataset_name, split=args.dataset_split)
