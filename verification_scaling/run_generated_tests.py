@@ -25,7 +25,6 @@ def main():
     for code, tests in zip(generated_code, generated_tests):
         reward_kwargs["verification_info"] += [tests for _ in code]
     rewards = code_reward(test_completions, num_parallel=args.num_parallel, **reward_kwargs)
-    rewards = [float(reward) for reward in rewards]
     num_generations = len(rewards) // len(generated_code)
     rewards = [rewards[i:i+num_generations] for i in range(0, len(rewards), num_generations)]
     out_dataset = generated_code_dataset.add_column(name="rewards", column=rewards)

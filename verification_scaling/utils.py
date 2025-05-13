@@ -291,6 +291,7 @@ def code_reward(completions, num_parallel: int = 2, **kwargs) -> list[float]:
 
     try:
         rewards = run_async_from_sync(scripts, language, num_parallel)
+        rewards = [float(one) for one in rewards]
     except Exception as e:
         print(f"Error from E2B executor: {e}")
         rewards = [0.0] * len(completions)
@@ -354,7 +355,7 @@ def get_function_output(code_list, num_parallel: int = 2, **kwargs) -> list[floa
     return outputs
 
 
-def run_async_from_sync(scripts: list[str], language: str, num_parallel: int) -> list[float]:
+def run_async_from_sync(scripts: list[str], language: str, num_parallel: int) -> list[str]:
     """Function wrapping the `run_async` function."""
     # Create a new event loop and set it
     try:
@@ -367,7 +368,7 @@ def run_async_from_sync(scripts: list[str], language: str, num_parallel: int) ->
     return rewards
 
 
-async def run_async(scripts: list[str], language: str, num_parallel: int) -> list[float]:
+async def run_async(scripts: list[str], language: str, num_parallel: int) -> list[str]:
     # Limit the number of concurrent tasks
     semaphore = asyncio.Semaphore(num_parallel)
 
@@ -381,7 +382,7 @@ async def run_async(scripts: list[str], language: str, num_parallel: int) -> lis
     return rewards
 
 
-async def run_script(script: str, language: str, semaphore: asyncio.Semaphore) -> float:
+async def run_script(script: str, language: str, semaphore: asyncio.Semaphore) -> str:
     # We set a timeout margin, as the AsyncSandbox timeout does not seem to work
     # These values are based on running 256 examples with the gold solution
     # from open-r1/verifiable-coding-problems-python_decontaminated
@@ -398,13 +399,13 @@ async def run_script(script: str, language: str, semaphore: asyncio.Semaphore) -
             execution = await asyncio.wait_for(sandbox.run_code(script, language=language), timeout=ASYNCIO_TIMEOUT)
             return execution.text
         except (TypeError, ValueError):
-            return 0.0
+            return '0'
         except asyncio.TimeoutError:
             print("Operation timed out")
-            return 0.0
+            return '0'
         except Exception as e:
             print(f"Error in `run_script` from E2B sandbox ID {sandbox.sandbox_id} : {e}")
-            return 0.0
+            return '0'
         finally:
             try:
                 await sandbox.kill()

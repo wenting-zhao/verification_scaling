@@ -4,6 +4,7 @@ from datasets import load_dataset
 from vllm import LLM, SamplingParams
 import torch
 from verification_scaling.utils import (
+    code_reward,
     prepare_mbpp_prompt,
     prepare_humaneval_prompt,
     prepare_livecodebench_prompt
