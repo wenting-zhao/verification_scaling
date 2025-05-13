@@ -4,7 +4,6 @@ from datasets import load_dataset
 from vllm import LLM, SamplingParams
 import torch
 from verification_scaling.utils import (
-    code_reward,
     prepare_mbpp_prompt,
     prepare_humaneval_prompt,
     prepare_livecodebench_prompt
@@ -87,8 +86,24 @@ if __name__ == "__main__":
             function_call = example["function_name"]
             gt_tests = []
             parsed_tests = ast.literal_eval(example["test"])
+            starter_code = example["starter_code"]
+            start = starter_code.find("(")
+            end = starter_code.rfind(")")
+            extracted_args = starter_code[start+1:end]
+            num_args = extracted_args.count(":")
+            assert num_args > 0, "No arguments found in starter code"
             for one in parsed_tests:
-                input_args = ", ".join(ast.literal_eval(one["input"]))
+                if num_args == 1:
+                    input_args = one["input"]
+                else:
+                    if '\n' in one["input"]:
+                        input_args = one["input"].split("\n")
+                        input_args = [arg.strip() for arg in input_args]
+                    else:
+                        input_args = ast.literal_eval(one["input"])
+                    assert len(input_args) == num_args, "Number of arguments in input does not match number of arguments in starter code"
+                    input_args = [str(arg) for arg in input_args]
+                    input_args = ", ".join(input_args)
                 gt_test = f"assert {function_call}({input_args}) == {one['output']}"
                 gt_tests.append(gt_test)
         else:
