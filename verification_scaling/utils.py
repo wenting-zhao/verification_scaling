@@ -257,7 +257,7 @@ def code_reward(completions, num_parallel: int = 2, **kwargs) -> list[float]:
 
     def evaluate_code(code, test_cases):
         code = code + "\\n" + "\\n".join(test_cases)
-        exec_timeout = 5
+        exec_timeout = 10
         try:
             process = subprocess.run(
                 ["python3", "-c", code],
@@ -293,8 +293,7 @@ def code_reward(completions, num_parallel: int = 2, **kwargs) -> list[float]:
         rewards = run_async_from_sync(scripts, language, num_parallel)
         rewards = [float(one) for one in rewards]
     except Exception as e:
-        print(f"Error from E2B executor: {e}")
-        rewards = [0.0] * len(completions)
+        raise Exception(f"Error from E2B executor: {e}")
 
     return rewards
 
@@ -312,7 +311,7 @@ def get_function_output(code_list, num_parallel: int = 2, **kwargs) -> list[str]
     import json
 
     def evaluate_code(code, test_cases):
-        exec_timeout = 5
+        exec_timeout = 10
         outputs = []
         for test in test_cases:
             code_to_run = code + "\\n" + 'print('+test+')'
@@ -349,8 +348,7 @@ def get_function_output(code_list, num_parallel: int = 2, **kwargs) -> list[str]
     try:
         outputs = run_async_from_sync(scripts, language, num_parallel)
     except Exception as e:
-        print(f"Error from E2B executor: {e}")
-        outputs = [None] * len(code_list)
+        raise Exception(f"Error from E2B executor: {e}")
 
     return outputs
 

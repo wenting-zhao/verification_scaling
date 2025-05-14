@@ -76,7 +76,7 @@ def main():
     outputs = get_function_output(code, num_parallel=args.num_parallel, **kwargs)
     outputs = [
         ast.literal_eval(output.replace("\n ", " "))
-        if not isinstance(output, (int, float)) and output is not None
+        if output != '0' and output is not None
         else [None]
         for output in outputs
     ]
