@@ -74,7 +74,12 @@ def main():
     kwargs = dict()
     kwargs["verification_info"] = verification_info
     outputs = get_function_output(code, num_parallel=args.num_parallel, **kwargs)
-    outputs = [ast.literal_eval(output.replace("\n ", " ")) if output != 0.0 and output is not None else [None] for output in outputs]
+    outputs = [
+        ast.literal_eval(output.replace("\n ", " "))
+        if not isinstance(output, (int, float)) and output is not None
+        else [None]
+        for output in outputs
+    ]
     new_verification_info = []
     for info, output in zip(dataset["verification_info"], outputs):
         new_info = dict()

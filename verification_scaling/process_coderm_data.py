@@ -6,9 +6,6 @@ from datasets import (
     concatenate_datasets,
     Dataset,
     DatasetDict,
-    Features,
-    Value,
-    Sequence
 )
 
 
@@ -61,7 +58,9 @@ def process_unit_test(test_file_content):
 
 
 def main():
-    dataset = load_dataset("KAKA22/CodeRM-UnitTest", split="test")
+    dataset0 = load_dataset("KAKA22/CodeRM-UnitTest", split="train")
+    dataset1 = load_dataset("KAKA22/CodeRM-UnitTest", split="test")
+    dataset = concatenate_datasets([dataset0, dataset1])
     processed_dataset = []
     count = 0
     for example in dataset:
@@ -116,7 +115,7 @@ def main():
     processed_dataset = Dataset.from_list(processed_dataset)
     mbpp = load_dataset("google-research-datasets/mbpp").cast(processed_dataset.features)
     processed_dataset = DatasetDict({
-        "train": concatenate_datasets([processed_dataset, mbpp["train"]]),
+        "train": processed_dataset,
         "validation": mbpp["validation"]
     })
     processed_dataset.push_to_hub("test-gen/combined")

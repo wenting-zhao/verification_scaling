@@ -299,7 +299,7 @@ def code_reward(completions, num_parallel: int = 2, **kwargs) -> list[float]:
     return rewards
 
 
-def get_function_output(code_list, num_parallel: int = 2, **kwargs) -> list[float]:
+def get_function_output(code_list, num_parallel: int = 2, **kwargs) -> list[str]:
     """Get the output of the ground truth function given an input.
 
     Assumes the dataset contains a `verification_info` column with test cases.
