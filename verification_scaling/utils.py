@@ -174,7 +174,21 @@ def get_easy_test_cases_with_unique_outputs(test_cases, n):
 
 
 def prepare_humaneval_prompt(example):
-    return example['prompt']
+    prompt = example['prompt']
+    prompt = prompt.split("\n")
+    for idx, one in enumerate(prompt):
+        curr = "\n".join(prompt[:idx])
+        if curr.count(f"{example['entry_point']}(") > 1:
+            break
+    prompt = prompt[:idx-1]
+    if "example" in prompt[-1].lower():
+        prompt = prompt[:-1]
+    prompt = "\n".join(prompt).strip()
+    if "\'\'\'" in prompt:
+        prompt = prompt + "\n    '''\n    pass"
+    else:
+        prompt = prompt + "\n    \"\"\"\n    pass"
+    return prompt
 
 
 def prepare_livecodebench_prompt(example):

@@ -66,6 +66,8 @@ def main():
         for example in dataset:
             function_signature = extract_function_signature(example["prompt"])
             code.append(function_signature + ":\n" + example["canonical_solution"])
+    elif "livecodebench" in args.dataset_name.lower():
+        code = load_dataset("test-gen/livecodebench-with-code", split=args.dataset_split)["code"]
     else:
         code = dataset["code"]
     verification_info = deepcopy(dataset["verification_info"])

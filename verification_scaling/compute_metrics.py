@@ -116,6 +116,6 @@ def main():
             filtered_gt_rewards.append(j)
     test_gen_accuracy = [i==j for i, j in zip(filtered_rewards, filtered_gt_rewards)]
     test_gen_accuracy = sum(test_gen_accuracy) / len(test_gen_accuracy)
-    print(f"filtered test_gen_accuracy: {test_gen_accuracy} ({test_gen_accuracy*100:.2f}%)")
+    print(f"filtered test_gen_accuracy (total of {len(filtered_rewards)}): {test_gen_accuracy} ({test_gen_accuracy*100:.2f}%)")
 if __name__ == "__main__":
     main()
