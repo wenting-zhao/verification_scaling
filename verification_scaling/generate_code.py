@@ -19,7 +19,7 @@ Solve the following coding problem using the programming language python:
 Now solve the problem and return the code.
 '''
 
-def generate_code(problems, model, temperature, num_generations):
+def generate_code(problems, model, temperature, num_generations, thinking):
     """Generate code solutions for a dataset using vLLM.
     
     Args:
@@ -40,7 +40,7 @@ def generate_code(problems, model, temperature, num_generations):
     code_prompts = [code_generation_format.format(problem=problem) for problem in problems]
 
     messages = [[{"role": "user", "content": prompt}] for prompt in code_prompts]
-    outputs = llm.chat(messages, sampling_params)
+    outputs = llm.chat(messages, sampling_params=sampling_params, chat_template_kwargs={"enable_thinking": thinking})
     generated_code = [[one.text for one in output.outputs] for output in outputs]
     return generated_code
 
@@ -53,6 +53,7 @@ if __name__ == "__main__":
     parser.add_argument("--num_generations", type=int, default=10, help="Number of generations per example")
     parser.add_argument("--temperature", type=float, default=0.7, help="Temperature for generation")
     parser.add_argument("--num_parallel", type=int, default=20, help="Number of parallel generations to run")
+    parser.add_argument("--thinking", action="store_true", help="Enable thinking for code generation")
     args = parser.parse_args()
 
     dataset = load_dataset(args.dataset_name, split=args.dataset_split, trust_remote_code=True)
@@ -71,7 +72,8 @@ if __name__ == "__main__":
         problems,
         args.model,
         temperature=args.temperature,
-        num_generations=args.num_generations
+        num_generations=args.num_generations,
+        thinking=args.thinking
     )
     dataset = dataset.add_column(name="generated_code", column=generated_code)
     generated_code = dataset["generated_code"]

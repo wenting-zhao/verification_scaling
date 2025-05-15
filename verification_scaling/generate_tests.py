@@ -278,13 +278,16 @@ def deduplicate_tests(tests):
     return unique_tests
 
 
-def generate_tests(problems, prompt_format, model, temperature, num_generations, bucket):
+def generate_tests(problems, prompt_format, model, temperature, max_tokens, num_generations, top_p, top_k, min_p, thinking):
     """Generate test cases for a dataset using vLLM in batch."""
     llm = LLM(model=model, tensor_parallel_size=torch.cuda.device_count())
     sampling_params = SamplingParams(
         temperature=temperature,
-        max_tokens=512,
+        max_tokens=max_tokens,
         n=num_generations,
+        top_p=top_p,
+        top_k=top_k,
+        min_p=min_p,
         )
     formatted_prompts = []
     for problem in problems:
@@ -297,21 +300,9 @@ def generate_tests(problems, prompt_format, model, temperature, num_generations,
             raise NotImplementedError("Instruction solution format not implemented")
         else:
             raise ValueError("Invalid prompt format")
-        if bucket is not None:
-            if bucket in ["Easy", "Hard"]:
-                formatted_input = formatted_input.replace("Test Cases:", f"{bucket} Test Cases:")
-                formatted_prompts.append(formatted_input)
-            elif bucket == "All":
-                formatted_input = formatted_input.replace("Test Cases:", "Easy Test Cases:")
-                formatted_prompts.append(formatted_input)
-                formatted_input = formatted_input.replace("Test Cases:", "Hard Test Cases:")
-                formatted_prompts.append(formatted_input)
-            else:
-                raise ValueError(f"Bucket must be one of Easy, Hard, or All, but got {bucket}")
-        else:
-            formatted_prompts.append(formatted_input)
+        formatted_prompts.append(formatted_input)
     messages = [[{"role": "user", "content": prompt}] for prompt in formatted_prompts]
-    chat_outputs = llm.chat(messages, sampling_params)
+    chat_outputs = llm.chat(messages, sampling_params=sampling_params, chat_template_kwargs={"enable_thinking": thinking})
     
     all_tests = []
     malformed_count = 0
@@ -337,7 +328,11 @@ if __name__ == "__main__":
     parser.add_argument("--test_prompt_format", type=str, default="instruction_only", help="Prompt format for test generation")
     parser.add_argument("--temperature", type=float, default=0, help="Temperature for test generation")
     parser.add_argument("--num_generations", type=int, default=1, help="Number of generations to perform")
-    parser.add_argument("--bucket", type=str, default=None, help="Use bucket for test generation")
+    parser.add_argument("--max_tokens", type=int, default=512, help="Max tokens for test generation")
+    parser.add_argument("--top_p", type=float, default=1.0, help="Top p for test generation")
+    parser.add_argument("--top_k", type=int, default=-1, help="Top k for test generation")
+    parser.add_argument("--min_p", type=float, default=0.0, help="Min p for test generation")
+    parser.add_argument("--thinking", action="store_true", help="Enable thinking for test generation")
     args = parser.parse_args()
 
     dataset = load_dataset(args.dataset_name, split=args.dataset_split, trust_remote_code=True)
@@ -356,7 +351,18 @@ if __name__ == "__main__":
     else:
         raise NotImplementedError("Dataset not supported")
 
-    all_tests = generate_tests(problems, args.test_prompt_format, args.model, args.temperature, args.num_generations, args.bucket)
+    all_tests = generate_tests(
+        problems,
+        args.test_prompt_format,
+        args.model,
+        args.temperature,
+        args.max_tokens,
+        args.num_generations,
+        args.top_p,
+        args.top_k,
+        args.min_p,
+        args.thinking
+    )
     verification_info = []
     for tests in all_tests:
         verification_info.append({
@@ -366,6 +372,4 @@ if __name__ == "__main__":
     dataset = dataset.add_column(name="verification_info", column=verification_info)
     model_name = args.model.split("/")[-1]
     output_dataset_name = f"test-gen/{dataset_name}_{model_name}_t{args.temperature}_n{args.num_generations}_generated_tests"
-    if args.bucket is not None:
-        output_dataset_name += f"_{args.bucket}"
     dataset.push_to_hub(output_dataset_name, split=args.dataset_split)
