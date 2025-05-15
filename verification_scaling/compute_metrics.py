@@ -27,7 +27,7 @@ def compute_accuracy(rewards, gt_rewards):
 
     return correct_ones / len(rewards)
 
-def compute_f1(actual, predicted):
+def compute_scores(actual, predicted):
     """
     Compute F1 score between two lists of binary values (0s and 1s).
     
@@ -53,8 +53,10 @@ def compute_f1(actual, predicted):
     
     # Calculate F1 score
     f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+    false_positives_rate = false_positives / (true_positives + false_positives) if (true_positives + false_positives) > 0 else 0
+    false_negatives_rate = false_negatives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 0
     
-    return f1
+    return f1, false_positives_rate, false_negatives_rate
 
 def main():
     parser = argparse.ArgumentParser(description="Compute accuracy of reward predictions")
@@ -100,8 +102,10 @@ def main():
     test_gen_ha_accuracy = [i==j for i, j in zip(flat_rewards, flat_gt_rewards)]
     test_gen_ha_accuracy = sum(test_gen_ha_accuracy) / len(test_gen_ha_accuracy)
     print(f"test_gen_ha_accuracy: {test_gen_ha_accuracy} ({test_gen_ha_accuracy*100:.2f}%)")
-    test_gen_f1 = compute_f1(flat_gt_rewards, flat_rewards)
+    test_gen_f1, test_gen_false_positives_rate, test_gen_false_negatives_rate = compute_scores(flat_gt_rewards, flat_rewards)
     print(f"test_gen_f1: {test_gen_f1} ({test_gen_f1*100:.2f}%)")
+    print(f"test_gen_false_positives_rate: {test_gen_false_positives_rate} ({test_gen_false_positives_rate*100:.2f}%)")
+    print(f"test_gen_false_negatives_rate: {test_gen_false_negatives_rate} ({test_gen_false_negatives_rate*100:.2f}%)")
     test_gen_accuracy = [i==j for i, j in zip(rewards, gt_rewards)]
     test_gen_accuracy = sum(test_gen_accuracy) / len(test_gen_accuracy)
     print(f"test_gen_accuracy: {test_gen_accuracy} ({test_gen_accuracy*100:.2f}%)")
