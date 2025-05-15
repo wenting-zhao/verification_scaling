@@ -18,6 +18,8 @@ def main():
     generated_tests_dataset = load_dataset(args.generated_tests_dataset_name, split=args.generated_tests_dataset_split, trust_remote_code=True)
     generated_code = generated_code_dataset["generated_code"]
     generated_tests = generated_tests_dataset["verification_info"]
+    for one in generated_tests:
+        one['test_cases'] = one['test_cases'][:3]
     test_completions = [{"content": sample} for one in generated_code for sample in one]
 
     reward_kwargs = dict()
