@@ -5,15 +5,20 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "datasets>=3.6.0",
     "e2b-code-interpreter>=1.2.1",
+    "flash-attn>=2.7.4.post1",
     "numpy>=2.1.3",
     "open-r1",
     "torchvision>=0.21.0",
     "transformers>=4.52.0.dev0",
     "verl",
-    "vllm==0.8.5.post1",
+    "vllm>=0.9.1.dev31",
 ]
 
 [tool.uv.sources]
 open-r1 = { git = "https://github.com/huggingface/open-r1.git" }
 verl = { git = "https://github.com/volcengine/verl.git" }
+
+[[tool.uv.index]]
+url = "https://wheels.vllm.ai/nightly"
