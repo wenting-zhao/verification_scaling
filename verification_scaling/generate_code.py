@@ -123,5 +123,8 @@ if __name__ == "__main__":
     print(f"pass@{args.num_generations}: {num_passes / len(gt_rewards)}")
 
     model_name = args.model.split("/")[-1]
-    output_dataset_name = f"test-gen/{dataset_name}_{model_name}_t{args.temperature}_n{args.num_generations}_generated_code"
+    if args.thinking:
+        output_dataset_name = f"test-gen/{dataset_name}_{model_name}_t{args.temperature}_n{args.num_generations}_think_generated_code"
+    else:
+        output_dataset_name = f"test-gen/{dataset_name}_{model_name}_t{args.temperature}_n{args.num_generations}_generated_code"
     dataset.push_to_hub(output_dataset_name, split=args.dataset_split)

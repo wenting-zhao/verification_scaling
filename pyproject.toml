@@ -6,13 +6,12 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "e2b-code-interpreter>=1.2.1",
-    "flash-attn>=2.7.4.post1",
+    "numpy>=2.1.3",
     "open-r1",
-    "torch>=2.6.0",
     "torchvision>=0.21.0",
     "transformers>=4.52.0.dev0",
     "verl",
-    "vllm>=0.8.3",
+    "vllm==0.8.5.post1",
 ]
 
 [tool.uv.sources]

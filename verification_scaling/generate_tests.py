@@ -371,5 +371,8 @@ if __name__ == "__main__":
         })
     dataset = dataset.add_column(name="verification_info", column=verification_info)
     model_name = args.model.split("/")[-1]
-    output_dataset_name = f"test-gen/{dataset_name}_{model_name}_t{args.temperature}_n{args.num_generations}_generated_tests"
+    if args.thinking:
+        output_dataset_name = f"test-gen/{dataset_name}_{model_name}_t{args.temperature}_n{args.num_generations}_think_generated_tests"
+    else:
+        output_dataset_name = f"test-gen/{dataset_name}_{model_name}_t{args.temperature}_n{args.num_generations}_generated_tests"
     dataset.push_to_hub(output_dataset_name, split=args.dataset_split)
