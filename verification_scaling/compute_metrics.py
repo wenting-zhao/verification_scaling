@@ -1,4 +1,5 @@
 import argparse
+import random
 from collections import Counter
 import datasets
 
@@ -26,6 +27,23 @@ def compute_accuracy(rewards, gt_rewards):
                 break
 
     return correct_ones / len(rewards)
+
+def compute_random_accuracy(gt_rewards):
+    """
+    Compute accuracy of the rewards prediction by random guessing.
+
+    Args:
+        gt_rewards: List of lists, where each element is a list of 0s and 1s (ground truth)
+
+    Returns:
+        float: Accuracy of the predictions
+    """
+    correct_ones = 0
+    for gt_reward_seq in gt_rewards:
+        chosen = random.choice(gt_reward_seq)
+        if chosen == 1:
+            correct_ones += 1
+    return correct_ones / len(gt_rewards)
 
 def compute_scores(actual, predicted):
     """
@@ -84,6 +102,10 @@ def main():
     accuracy = compute_accuracy(rewards, gt_rewards)
     
     print(f"Accuracy: {accuracy:.4f} ({accuracy*100:.2f}%)")
+
+    # Compute random accuracy
+    random_accuracy = compute_random_accuracy(gt_rewards)
+    print(f"Random guessing: {random_accuracy} ({random_accuracy*100:.2f}%)")
 
     num_generations = len(dataset[args.rewards_column][0])
     num_passes = sum(1 for one in gt_rewards if sum(one) > 0)
