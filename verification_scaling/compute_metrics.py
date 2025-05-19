@@ -94,6 +94,7 @@ def main():
     rewards = dataset[args.rewards_column]
     gt_rewards = dataset[args.gt_rewards_column]
     test_cases = [example['verification_info']['test_cases'] for example in dataset]
+    rewards = [reward if len(test_case) > 0 else [0] * len(reward) for reward, test_case in zip(rewards, test_cases)]
 
     print("average #test cases:", sum(len(i) for i in test_cases) / len(test_cases))
     
@@ -116,7 +117,7 @@ def main():
     flat_gt_rewards = []
     for example in dataset:
         if len(example['verification_info']['test_cases']) == 0:
-            flat_rewards += [-1] * len(example[args.rewards_column])
+            flat_rewards += [0] * len(example[args.rewards_column])
             flat_gt_rewards += example[args.gt_rewards_column]
         else:
             flat_rewards += example[args.rewards_column]
