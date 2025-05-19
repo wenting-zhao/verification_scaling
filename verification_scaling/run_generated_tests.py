@@ -35,7 +35,7 @@ def main():
     test_dataset_name = args.generated_tests_dataset_name.split("/")[-1].replace("_generated_tests", "")
     output_dataset_name = f"test-gen/code_{code_dataset_name}_tests_{test_dataset_name}"
     # HuggingFace dataset name limit is 96 characters
-    output_dataset_name = output_dataset_name.lower().replace("-instruct", "").replace("coder-", "")
+    output_dataset_name = output_dataset_name.lower().replace("-instruct", "").replace("coder-", "").replace("deepseek-r1-distill-qwen", "r1-qwen")
     out_dataset.push_to_hub(output_dataset_name, split=args.generated_code_dataset_split)
 
 
