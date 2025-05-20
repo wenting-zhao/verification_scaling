@@ -296,17 +296,21 @@ def generate_tests(problems, prompt_format, model, temperature, max_tokens, num_
         else:
             raise ValueError("Invalid prompt format")
         formatted_prompts.append(formatted_input)
-    if model in ["o3"]:
+    if model in ["o3", "o4-mini"]:
         chat_outputs = []
         for prompt in tqdm(formatted_prompts):
-            chat_output = client.chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "user", "content": prompt}
-                ],
-                n=num_generations,
-            )
-            chat_outputs.append(chat_output)
+            try:
+                chat_output = client.chat.completions.create(
+                    model=model,
+                    messages=[
+                        {"role": "user", "content": prompt}
+                    ],
+                    n=num_generations,
+                )
+                chat_outputs.append(chat_output)
+            except Exception as e:
+                print(e)
+                chat_outputs.append(None)
     else:
         llm = LLM(model=model, tensor_parallel_size=torch.cuda.device_count())
         sampling_params = SamplingParams(
@@ -325,6 +329,10 @@ def generate_tests(problems, prompt_format, model, temperature, max_tokens, num_
     for output in chat_outputs:
         current_tests = []
         if model in ["o3"]:
+            if output is None:
+                current_tests.extend([])
+                malformed_count += 1
+                continue
             for response in output.choices:
                 tests = extract_test_cases(response.message.content)
                 if len(tests) == 0:
