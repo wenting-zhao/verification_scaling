@@ -40,9 +40,7 @@ def compute_random_accuracy(gt_rewards):
     """
     correct_ones = 0
     for gt_reward_seq in gt_rewards:
-        chosen = random.choice(gt_reward_seq)
-        if chosen == 1:
-            correct_ones += 1
+        correct_ones += sum(gt_reward_seq) / len(gt_reward_seq)
     return correct_ones / len(gt_rewards)
 
 def compute_scores(actual, predicted):

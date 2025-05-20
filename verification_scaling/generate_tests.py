@@ -328,7 +328,7 @@ def generate_tests(problems, prompt_format, model, temperature, max_tokens, num_
     malformed_count = 0
     for output in chat_outputs:
         current_tests = []
-        if model in ["o3"]:
+        if model in ["o3", "o4-mini"]:
             if output is None:
                 current_tests.extend([])
                 malformed_count += 1
