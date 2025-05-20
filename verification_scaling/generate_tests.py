@@ -3,12 +3,16 @@ import argparse
 import re
 from datasets import load_dataset
 from vllm import LLM, SamplingParams
+from openai import OpenAI
+from tqdm import tqdm
 import torch
 from verification_scaling.utils import (
     prepare_mbpp_prompt,
     prepare_humaneval_prompt,
     prepare_livecodebench_prompt
 )
+
+client = OpenAI()
 
 
 instruction_only_format_no_few_shot = '''
@@ -280,15 +284,6 @@ def deduplicate_tests(tests):
 
 def generate_tests(problems, prompt_format, model, temperature, max_tokens, num_generations, top_p, top_k, min_p, thinking):
     """Generate test cases for a dataset using vLLM in batch."""
-    llm = LLM(model=model, tensor_parallel_size=torch.cuda.device_count())
-    sampling_params = SamplingParams(
-        temperature=temperature,
-        max_tokens=max_tokens,
-        n=num_generations,
-        top_p=top_p,
-        top_k=top_k,
-        min_p=min_p,
-        )
     formatted_prompts = []
     for problem in problems:
         if prompt_format == "instruction_only":
@@ -301,18 +296,46 @@ def generate_tests(problems, prompt_format, model, temperature, max_tokens, num_
         else:
             raise ValueError("Invalid prompt format")
         formatted_prompts.append(formatted_input)
-    messages = [[{"role": "user", "content": prompt}] for prompt in formatted_prompts]
-    chat_outputs = llm.chat(messages, sampling_params=sampling_params, chat_template_kwargs={"enable_thinking": thinking})
+    if model in ["o3"]:
+        chat_outputs = []
+        for prompt in tqdm(formatted_prompts):
+            chat_output = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ],
+                n=num_generations,
+            )
+            chat_outputs.append(chat_output)
+    else:
+        llm = LLM(model=model, tensor_parallel_size=torch.cuda.device_count())
+        sampling_params = SamplingParams(
+            temperature=temperature,
+            max_tokens=max_tokens,
+            n=num_generations,
+            top_p=top_p,
+            top_k=top_k,
+            min_p=min_p,
+            )
+        messages = [[{"role": "user", "content": prompt}] for prompt in formatted_prompts]
+        chat_outputs = llm.chat(messages, sampling_params=sampling_params, chat_template_kwargs={"enable_thinking": thinking})
     
     all_tests = []
     malformed_count = 0
     for output in chat_outputs:
         current_tests = []
-        for response in output.outputs:
-            tests = extract_test_cases(response.text)
-            if len(tests) == 0:
-                malformed_count += 1
-            current_tests.extend(tests)
+        if model in ["o3"]:
+            for response in output.choices:
+                tests = extract_test_cases(response.message.content)
+                if len(tests) == 0:
+                    malformed_count += 1
+                current_tests.extend(tests)
+        else:
+            for response in output.outputs:
+                tests = extract_test_cases(response.text)
+                if len(tests) == 0:
+                    malformed_count += 1
+                current_tests.extend(tests)
         current_tests = list(set(current_tests))
         current_tests = deduplicate_tests(current_tests)
         all_tests.append(current_tests)
