@@ -95,7 +95,10 @@ def main():
     
     # Load the dataset
     print(f"Loading dataset {args.dataset}, split {args.split}...")
-    dataset = datasets.load_dataset(args.dataset, split=args.split)
+    try:
+        dataset = datasets.load_dataset(args.dataset, split=args.split)
+    except:
+        dataset = datasets.load_dataset("json", data_files=args.dataset, split=args.split, trust_remote_code=True)
     
     # Extract the columns
     rewards = dataset[args.rewards_column]
