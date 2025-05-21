@@ -26,8 +26,7 @@ def main():
     output_dataset_name = output_dataset_name.lower().replace("-instruct", "").replace("coder-", "").replace("deepseek-r1-distill-qwen", "r1-qwen")
 
     try:
-        result = load_dataset(output_dataset_name, split=args.generated_code_dataset_split, trust_remote_code=True)
-        result.to_json(f"{output_dataset_name}.jsonl")
+        load_dataset(output_dataset_name, split=args.generated_code_dataset_split, trust_remote_code=True)
         print(f"Results already exist for {output_dataset_name}, skipping")
         return
     except:
